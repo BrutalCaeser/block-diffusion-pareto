@@ -51,7 +51,8 @@ python -c "import torch; print('cuda avail:', torch.cuda.is_available(), torch.c
 
 cd "$REPO"
 EXTRA=""
-[ -n "$LIMIT" ] && EXTRA="+trainer.limit_val_batches=$LIMIT"
+# limit_val_batches already exists in config.yaml (=1.0) -> plain override, no '+'.
+[ -n "$LIMIT" ] && EXTRA="trainer.limit_val_batches=$LIMIT"
 
 set -x
 python -u main.py \
