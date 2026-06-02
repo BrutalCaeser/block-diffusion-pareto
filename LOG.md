@@ -4,6 +4,16 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-02 (cont.) — ✅ env built, Gate G0 PASSED
+
+- **Job 7380846 COMPLETED** (53 min, exit 0:0) on `gpu-short` node d1007 (Tesla V100-SXM2-32GB).
+- **Isolation fix confirmed:** effective `pkgs_dirs` listed ONLY the project cache; corrupted `matrix-game` cache off the path. Everything downloaded clean.
+- **Gate G0 verify (all green):** python 3.9.25 · **torch 2.7.1+cu126** · CUDA build tag 12.6 · `torch.cuda.is_available()=True` · GPU=Tesla V100-SXM2-32GB · transformers 4.49.0 · lightning 2.5.0.post0 · datasets 3.3.2 · triton 3.3.1 · hydra-core 1.3.2 · **ALL CORE IMPORTS OK**.
+- **Lockfile frozen & committed:** `env/requirements.lock.txt` (177 pkgs) — full provenance. Versions match bd3lms `requirements.txt` exactly.
+- Build was slow (~53 min) due to the large dependency tree (full torch+CUDA wheels + Jupyter/sklearn/pandas long tail) written to network /scratch. One-time cost; env is cached now.
+- Activate: `conda activate /scratch/gupta.yashv/block-pareto/envs/blockpareto`.
+- **Next:** Phase 1 smoke test — `mode=ppl_eval` on `kuleshov-group/bd3lm-owt-block_size16`, target PPL within ~2% of paper (≤22.27).
+
 ## 2026-06-02 (cont.) — env-build: root-caused corrupted conda cache
 
 - **Two FAILED env builds (jobs 7380571, 7380683)** — both `CondaVerificationError`: the package `wheel-0.45.1-py39h06a4308_0` in the shared cache `/scratch/gupta.yashv/matrix-game/conda-pkgs` is corrupted (extracted dir missing files listed in its manifest).
