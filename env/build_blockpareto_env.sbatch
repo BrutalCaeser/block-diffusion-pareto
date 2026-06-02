@@ -54,17 +54,26 @@ conda --version
 # FULLY isolate from the shared conda cache. ~/.condarc sets
 #   pkgs_dirs: /scratch/gupta.yashv/matrix-game/conda-pkgs
 # which contains MULTIPLE corrupted packages (wheel-0.45.1, setuptools-80.9.0, ...)
-# -> CondaVerificationError on jobs 7380571/7380683/7380728. Conda searches EVERY
-# pkgs_dir for an extracted package to hard-link, so per-package deletion is
-# whack-a-mole. Instead: write a JOB-LOCAL condarc whose pkgs_dirs is ONLY our
-# project cache, so the corrupted shared cache is OFF the search path entirely.
-# We preserve proxy/ssl/timeout settings from ~/.condarc (the compute node reaches
-# PyPI/anaconda THROUGH the cluster proxy 10.99.0.130:3128 — dropping it = no net).
-echo "### [1b] build job-local condarc (pkgs_dirs = project cache only)"
+# -> CondaVerificationError on jobs 7380571/7380683/7380728/7380779. Conda searches
+# EVERY pkgs_dir for an extracted package to hard-link (verification-fails on the
+# corrupted one = hard error, no fallback to re-download), so per-package deletion
+# is whack-a-mole. Critically, conda CONCATENATES pkgs_dirs across config sources:
+# job 7380779 proved CONDA_PKGS_DIRS and a CONDARC override BOTH merely PREPEND our
+# dir -- matrix-game stays on the search path (effective list showed both).
+#
+# The only clean way to drop ~/.condarc's entry WITHOUT permanently editing the
+# user's home config or touching the other project's cache: point HOME at a
+# job-local dir holding OUR OWN .condarc (pkgs_dirs = project cache only). conda
+# then reads our condarc as the user condarc; matrix-game disappears entirely.
+# We preserve proxy/ssl/timeout from the real ~/.condarc (the node reaches
+# PyPI/anaconda THROUGH the cluster proxy 10.99.0.130:3128 -- dropping it = no net).
+echo "### [1b] isolate conda config via job-local HOME (drop shared pkgs cache)"
 export CONDA_PKGS_DIRS="$PROJECT/conda-pkgs"
 mkdir -p "$CONDA_PKGS_DIRS"
-JOB_CONDARC="$PROJECT/condarc.job"
-python - "$HOME/.condarc" "$CONDA_PKGS_DIRS" > "$JOB_CONDARC" <<'PY'
+REAL_HOME="$HOME"
+export HOME="$PROJECT/condahome"
+mkdir -p "$HOME"
+python - "$REAL_HOME/.condarc" "$CONDA_PKGS_DIRS" > "$HOME/.condarc" <<'PY'
 import sys, re
 src, pkgs = sys.argv[1], sys.argv[2]
 try:
@@ -85,10 +94,10 @@ print("  - " + pkgs)
 if out:
     print("\n".join(out))
 PY
-export CONDARC="$JOB_CONDARC"
-echo "CONDARC=$CONDARC"
-echo "--- job condarc ---"; cat "$JOB_CONDARC"; echo "-------------------"
-echo "effective pkgs_dirs:"; conda config --show pkgs_dirs
+echo "HOME (job-local)=$HOME"
+echo "--- job .condarc ---"; cat "$HOME/.condarc"; echo "--------------------"
+echo "effective pkgs_dirs (must list ONLY the project cache):"
+conda config --show pkgs_dirs
 
 # --- 2. Clean any partial/failed env -----------------------------------------
 echo "### [2] clean prior attempts"
