@@ -51,13 +51,25 @@ module load anaconda3/2024.06
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda --version
 
-# Isolate this project's conda PACKAGE cache. The shared cache had a CORRUPTED
-# wheel-0.45.1 package (CondaVerificationError) that failed env creation on the
-# first attempt (job 7380571). A fresh project-local pkgs dir forces conda to
-# re-download clean packages and never touches the corrupted shared cache.
+# Isolate this project's conda PACKAGE cache. The shared cache (set in ~/.condarc
+# pkgs_dirs -> /scratch/.../matrix-game/conda-pkgs) had a CORRUPTED wheel-0.45.1
+# package (CondaVerificationError) that failed env creation on jobs 7380571/7380683.
+# A fresh project-local pkgs dir makes conda DOWNLOAD clean packages here...
 export CONDA_PKGS_DIRS="$PROJECT/conda-pkgs"
 mkdir -p "$CONDA_PKGS_DIRS"
 echo "CONDA_PKGS_DIRS=$CONDA_PKGS_DIRS"
+
+# ...BUT CONDA_PKGS_DIRS only controls where conda WRITES. Conda still scans every
+# pkgs_dir in ~/.condarc for an already-extracted package to hard-link, so it kept
+# reusing the corrupted wheel-0.45.1 extraction. Purge that one broken package from
+# ALL known pkgs_dirs (dir + .conda/.tar.bz2 tarball) so conda must re-download it
+# clean. We delete ONLY the corrupted package, nothing else in the shared cache.
+echo "### [1b] purge corrupted wheel-0.45.1 from all pkgs_dirs"
+for d in "$CONDA_PKGS_DIRS" $(conda config --show pkgs_dirs 2>/dev/null | grep -E '^\s+-\s' | sed 's/^\s*-\s*//'); do
+  for victim in "$d"/wheel-0.45.1-py39h06a4308_0 "$d"/wheel-0.45.1-py39h06a4308_0.conda "$d"/wheel-0.45.1-py39h06a4308_0.tar.bz2; do
+    if [ -e "$victim" ]; then echo "  rm -rf $victim"; rm -rf "$victim"; fi
+  done
+done
 
 # --- 2. Clean any partial/failed env -----------------------------------------
 echo "### [2] clean prior attempts"
