@@ -4,6 +4,13 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-02 (cont.) — env-build: root-caused corrupted conda cache
+
+- **Two FAILED env builds (jobs 7380571, 7380683)** — both `CondaVerificationError`: the package `wheel-0.45.1-py39h06a4308_0` in the shared cache `/scratch/gupta.yashv/matrix-game/conda-pkgs` is corrupted (extracted dir missing files listed in its manifest).
+- **First fix attempt (insufficient):** set `CONDA_PKGS_DIRS=$PROJECT/conda-pkgs`. **Did not work** — `CONDA_PKGS_DIRS` only controls where conda *writes/downloads*; conda still *scans every `pkgs_dirs` in `~/.condarc`* (which hard-codes the matrix-game cache) for an already-extracted package to hard-link, so it kept reusing the broken `wheel-0.45.1`.
+- **Real fix (job 7380728):** keep the isolated `CONDA_PKGS_DIRS`, **and** add step `[1b]` that deletes ONLY the corrupted `wheel-0.45.1` package (dir + `.conda`/`.tar.bz2`) from all `pkgs_dirs` before `conda create`, forcing a clean re-download. Targeted — nothing else in the shared cache is touched. Commit `3cb8e32`.
+- Lesson: `CONDA_PKGS_DIRS` ≠ isolation when `~/.condarc` lists a shared (and corruptible) `pkgs_dirs`. Cache hits are read across all of them.
+
 ## 2026-06-02 (cont.) — GitHub spine + env-build requeue to gpu-short
 
 - **GitHub repo created (public):** https://github.com/BrutalCaeser/block-diffusion-pareto . Local `main` pushed. This is now the source of truth/backup/portfolio. Cluster becomes a `git clone` (was an rsync target); rsync now only for pulling large generated results back.
