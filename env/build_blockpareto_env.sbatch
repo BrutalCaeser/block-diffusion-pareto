@@ -5,16 +5,21 @@
 #
 # WHY a SLURM job (not login node): Explorer login nodes cap interactive
 # memory/CPU and KILL heavy processes (observed: conda create -> "Killed").
-# Env build is CPU/IO/network heavy (no GPU needed), so we run it on a compute
-# node with generous CPU/mem. Env lives in /scratch (huge, no home quota),
+# Env build is CPU/IO/network heavy. We run it on the `gpu-short` partition
+# with 1 GPU: (a) the CPU `short` partition was jammed (0 idle nodes) so jobs
+# sat in queue, while `gpu-short` had idle nodes -> immediate start; (b) bonus
+# -> running on a GPU node lets us verify torch.cuda.is_available()==True as a
+# real Gate-G0 check. This is a one-time expedient for a ~20-min build; future
+# heavy CPU-only work should use `short`. Env lives in /scratch (no home quota),
 # matching the user's existing pattern (/scratch/gupta.yashv/flm/envs/flm).
 #
 # Submit:  sbatch env/build_blockpareto_env.sbatch
 # Log:     /scratch/gupta.yashv/block-pareto/logs/env_build_<jobid>.log
 # =============================================================================
 #SBATCH --job-name=bp-env-build
-#SBATCH --partition=short
-#SBATCH --time=01:30:00
+#SBATCH --partition=gpu-short
+#SBATCH --gres=gpu:1
+#SBATCH --time=02:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --output=/scratch/gupta.yashv/block-pareto/logs/env_build_%j.log
@@ -76,8 +81,10 @@ import sys
 print("python      :", sys.version.split()[0])
 import torch
 print("torch       :", torch.__version__)
-print("torch.cuda  :", torch.version.cuda, "(build tag; is_available False on CPU node is EXPECTED)")
-print("cuda avail  :", torch.cuda.is_available())
+print("torch.cuda  :", torch.version.cuda, "(CUDA build tag)")
+print("cuda avail  :", torch.cuda.is_available(), "(expect True on gpu-short node)")
+if torch.cuda.is_available():
+    print("gpu         :", torch.cuda.get_device_name(0))
 import transformers, lightning, hydra, omegaconf, datasets, triton, einops, timm, wandb
 print("transformers:", transformers.__version__)
 print("lightning   :", lightning.__version__)

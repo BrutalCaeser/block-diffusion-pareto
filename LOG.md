@@ -4,6 +4,12 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-02 (cont.) — GitHub spine + env-build requeue to gpu-short
+
+- **GitHub repo created (public):** https://github.com/BrutalCaeser/block-diffusion-pareto . Local `main` pushed. This is now the source of truth/backup/portfolio. Cluster becomes a `git clone` (was an rsync target); rsync now only for pulling large generated results back.
+- **Upstream pinned:** bd3lms @ `1c3e8f43d88dfbcee5ff2aa6932a9e74b31ae1d7` (2025-07-10) → `UPSTREAM.md`. Not vendored.
+- **Env-build requeue:** job 7380430 sat `PD` on `short` (partition jammed — 0 idle nodes). Requeued to **`gpu-short` + `--gres=gpu:1`** (idle nodes → immediate start) — and a GPU node lets us verify `torch.cuda.is_available()` for real. One-time expedient; heavy CPU-only work → `short` in future.
+
 ## 2026-06-02 — Project start: recon + env build
 
 **Recon (verified, not assumed):**

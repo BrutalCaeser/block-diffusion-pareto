@@ -22,6 +22,13 @@ results/     small metrics (CSV/JSON) — large dumps are gitignored
 - **Workspace (cluster):** `/scratch/gupta.yashv/block-pareto/` — `bd3lms/` (upstream), `envs/blockpareto` (conda), `data/`, `ckpts/`, `logs/`.
 - **Upstream:** [kuleshov-group/bd3lms](https://github.com/kuleshov-group/bd3lms) (ICLR 2025). Env: torch 2.7.1, py3.9; trains with FlexAttention, samples with sdpa + KV cache.
 
+## Workflow (git is the spine)
+- **GitHub** `BrutalCaeser/block-diffusion-pareto` (public) = source of truth + history + backup + portfolio.
+- **Author + commit** locally (`/Volumes/Crucial_X9/Projects/block-pareto`) → `git push`.
+- **Cluster** (`/scratch/gupta.yashv/block-pareto/repo`) is a clone → `git pull` to run jobs.
+- Large generated artifacts (checkpoints, data, logs) stay on `/scratch` and are **gitignored**; small results (CSV/JSON, plots) are committed. Results produced on the cluster are synced back to local via `rsync`, then committed.
+- Upstream BD3-LMs is a separate clone, **pinned by commit SHA** in `UPSTREAM.md` (not vendored).
+
 ## Reproduce the environment
 ```bash
 ssh explorer
