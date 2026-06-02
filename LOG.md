@@ -4,6 +4,16 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-02 (cont.) — Phase 1 wired up (smoke-test plan, grounded in repo)
+
+Read the bd3lms source to design Phase 1 correctly (not guess):
+- **ppl_eval skips train.** `main.py:_ppl_eval` → `get_dataloaders(..., skip_train=True)`. Only the OWT **valid** split (`openwebtext` `train[-100000:]`, 100k docs) is tokenized — no 8M-doc train tokenization. Big cost saver.
+- **One-time data cost = the OWT raw download (~40 GB).** HF `openwebtext` is single-split, so even the valid slice forces a full-shard download. Split off into a **CPU job** (`exp/p1_prep_owt.sbatch`, `short`, 16 CPU/64G/12h) that only warms the raw HF cache — no GPU idle, no 2h cap risk, and zero tokenizer-param matching (main.py tokenizes on the GPU job against the warm cache).
+- **sdpa is faithful** for PPL. `dit.py` feeds the SAME `block_diff_mask` to both backends; the sdpa path (`cross_attn`) does `F.scaled_dot_product_attention(attn_mask=mask, is_causal=False)`. So we use `attn_backend=sdpa` and run on the V100 that `gpu-short` provides (flex wants Ampere+). Eval job: `exp/p1_ppl_owt.sbatch` (1 GPU, staged: `LIMIT=8` sanity → full valid).
+- **Cache key:** with `data.insert_valid_special=False` (paper protocol + released-script default), the tokenized file is `openwebtext-valid_validation_bs1024_wrapped_specialFalse.dat`.
+- **Targets** (paper Table 1, OWT, len 1024): block_size 4 → ~20.73, 16 → ~22.27. Smoke passes if within ~2%.
+- Jobs: prep **7383163** submitted (PENDING on `short`). Eval queued behind it.
+
 ## 2026-06-02 (cont.) — ✅ env built, Gate G0 PASSED
 
 - **Job 7380846 COMPLETED** (53 min, exit 0:0) on `gpu-short` node d1007 (Tesla V100-SXM2-32GB).
