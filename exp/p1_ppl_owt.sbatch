@@ -19,7 +19,12 @@
 #   LIMIT=8    quick sanity on N val batches; unset/blank = full valid set
 #
 # Submit (quick sanity): sbatch --export=ALL,BS=16,LIMIT=8 exp/p1_ppl_owt.sbatch
-# Submit (full PPL):     sbatch --export=ALL,BS=16          exp/p1_ppl_owt.sbatch
+# Submit (full PPL):     sbatch --partition=gpu --time=04:00:00 --export=ALL,BS=16 exp/p1_ppl_owt.sbatch
+#
+# SIZING NOTE: full OWT valid = 6891 batches @ ~0.98 it/s on a V100 ≈ 1h57m, which
+# would hit the gpu-short 2h wall (and PPL only prints after the LAST batch -> result
+# lost). So full runs MUST use the 8h `gpu` partition (CLI override above). The
+# default directives below (gpu-short/2h) are sized for LIMIT sanity runs only.
 # =============================================================================
 #SBATCH --job-name=bp-p1-ppl
 #SBATCH --partition=gpu-short

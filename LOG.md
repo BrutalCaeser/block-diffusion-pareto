@@ -12,7 +12,7 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
   - **`val/ppl = 22.23`** · val/nll 3.1015 · val/bpd 4.4746.
   - **Paper target (BD3-LM L'=16, OWT): ≤ 22.27 → MATCH** (within ~0.2%, even on 8 batches). End-to-end pipeline validated: HF ckpt load, OWT tokenize+cache (`openwebtext-valid_validation_bs1024_wrapped_specialFalse.dat`), block-diffusion **sdpa** masking, PPL compute — all correct.
   - GPU throughput observed ~0.8 it/s (eval_batch_size 16, len 1024) on V100 — informs Phase 2/3 timing.
-- **Full-valid run (job 7390111, BS=16, no limit):** submitted for the precise publishable number (.dat cached → no re-tokenize).
+- **Full-valid run sizing lesson:** full OWT valid = **6891 batches @ ~0.98 it/s on V100 ≈ 1h57m** → would hit the gpu-short **2h wall** (PPL prints only after the last batch ⇒ result lost). Killed job 7390111 at 27% and **resubmitted on the 8h `gpu` partition** (job 7392432, `--partition=gpu --time=04:00:00`). Script updated with this sizing note; full runs must use `gpu`, gpu-short is for LIMIT sanity only.
 - Harmless: "Token indices sequence length is longer than 1024" = GPT-2 tokenizer notice before bd3lm `wrap` packs into 1024-blocks. Not an error.
 
 ## 2026-06-02 (cont.) — Phase 1 wired up (smoke-test plan, grounded in repo)
