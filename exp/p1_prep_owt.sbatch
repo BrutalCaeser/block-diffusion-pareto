@@ -14,11 +14,17 @@
 # match main.py exactly; rather than hand-replicate them, we let main.py tokenize
 # on the GPU job. Here we only populate the raw HF arrow cache -> zero param risk.
 #
+# Partition note: `short` (2-day) was fully saturated (0 idle nodes; scheduler
+# estimated a ~2h queue wait). `sharing` had ~99 IDLE nodes (AllowGroups=ALL) ->
+# immediate start, but MaxTime=1h. HF `datasets` caches downloaded files, so if 1h
+# isn't enough the download RESUMES on a re-run (no lost progress). We start on
+# `sharing` for immediacy; escalate to the 8h `gpu` partition only if 1h is short.
+#
 # Submit:  sbatch exp/p1_prep_owt.sbatch
 # =============================================================================
 #SBATCH --job-name=bp-p1-prep
-#SBATCH --partition=short
-#SBATCH --time=12:00:00
+#SBATCH --partition=sharing
+#SBATCH --time=01:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --output=/scratch/gupta.yashv/block-pareto/logs/p1_prep_%j.log
