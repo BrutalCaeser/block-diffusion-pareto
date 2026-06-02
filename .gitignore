@@ -22,8 +22,19 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 
-# OS
+# macOS junk (AppleDouble resource forks + Finder/Spotlight metadata) — never commit
+# (Crucial_X9 is a non-native FS, so macOS spawns ._* shadow files constantly)
 .DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.apdisk
 
 # Results: keep small CSV/JSON metrics, ignore large dumps
 results/**/*.npy
