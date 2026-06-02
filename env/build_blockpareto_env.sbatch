@@ -51,25 +51,44 @@ module load anaconda3/2024.06
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda --version
 
-# Isolate this project's conda PACKAGE cache. The shared cache (set in ~/.condarc
-# pkgs_dirs -> /scratch/.../matrix-game/conda-pkgs) had a CORRUPTED wheel-0.45.1
-# package (CondaVerificationError) that failed env creation on jobs 7380571/7380683.
-# A fresh project-local pkgs dir makes conda DOWNLOAD clean packages here...
+# FULLY isolate from the shared conda cache. ~/.condarc sets
+#   pkgs_dirs: /scratch/gupta.yashv/matrix-game/conda-pkgs
+# which contains MULTIPLE corrupted packages (wheel-0.45.1, setuptools-80.9.0, ...)
+# -> CondaVerificationError on jobs 7380571/7380683/7380728. Conda searches EVERY
+# pkgs_dir for an extracted package to hard-link, so per-package deletion is
+# whack-a-mole. Instead: write a JOB-LOCAL condarc whose pkgs_dirs is ONLY our
+# project cache, so the corrupted shared cache is OFF the search path entirely.
+# We preserve proxy/ssl/timeout settings from ~/.condarc (the compute node reaches
+# PyPI/anaconda THROUGH the cluster proxy 10.99.0.130:3128 — dropping it = no net).
+echo "### [1b] build job-local condarc (pkgs_dirs = project cache only)"
 export CONDA_PKGS_DIRS="$PROJECT/conda-pkgs"
 mkdir -p "$CONDA_PKGS_DIRS"
-echo "CONDA_PKGS_DIRS=$CONDA_PKGS_DIRS"
-
-# ...BUT CONDA_PKGS_DIRS only controls where conda WRITES. Conda still scans every
-# pkgs_dir in ~/.condarc for an already-extracted package to hard-link, so it kept
-# reusing the corrupted wheel-0.45.1 extraction. Purge that one broken package from
-# ALL known pkgs_dirs (dir + .conda/.tar.bz2 tarball) so conda must re-download it
-# clean. We delete ONLY the corrupted package, nothing else in the shared cache.
-echo "### [1b] purge corrupted wheel-0.45.1 from all pkgs_dirs"
-for d in "$CONDA_PKGS_DIRS" $(conda config --show pkgs_dirs 2>/dev/null | grep -E '^\s+-\s' | sed 's/^\s*-\s*//'); do
-  for victim in "$d"/wheel-0.45.1-py39h06a4308_0 "$d"/wheel-0.45.1-py39h06a4308_0.conda "$d"/wheel-0.45.1-py39h06a4308_0.tar.bz2; do
-    if [ -e "$victim" ]; then echo "  rm -rf $victim"; rm -rf "$victim"; fi
-  done
-done
+JOB_CONDARC="$PROJECT/condarc.job"
+python - "$HOME/.condarc" "$CONDA_PKGS_DIRS" > "$JOB_CONDARC" <<'PY'
+import sys, re
+src, pkgs = sys.argv[1], sys.argv[2]
+try:
+    lines = open(src).read().splitlines()
+except FileNotFoundError:
+    lines = []
+out, skip = [], False
+for ln in lines:
+    if re.match(r'^\s*pkgs_dirs\s*:', ln):   # drop existing pkgs_dirs block
+        skip = True; continue
+    if skip:
+        if re.match(r'^\s*-\s', ln):          # its list items
+            continue
+        skip = False
+    out.append(ln)
+print("pkgs_dirs:")
+print("  - " + pkgs)
+if out:
+    print("\n".join(out))
+PY
+export CONDARC="$JOB_CONDARC"
+echo "CONDARC=$CONDARC"
+echo "--- job condarc ---"; cat "$JOB_CONDARC"; echo "-------------------"
+echo "effective pkgs_dirs:"; conda config --show pkgs_dirs
 
 # --- 2. Clean any partial/failed env -----------------------------------------
 echo "### [2] clean prior attempts"
