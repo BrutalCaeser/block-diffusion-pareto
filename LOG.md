@@ -4,6 +4,17 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-02 (cont.) — ✅ Phase 1 smoke test PASSED (PPL reproduces paper)
+
+- **OWT prep (job 7389503, `sharing`):** COMPLETED in 7.5 min — 100k valid docs, 38 GB raw cache. (`short` was saturated → moved to idle `sharing`; 1h cap was ample.)
+- **Hydra fix:** `+trainer.limit_val_batches` failed (key exists in config) → plain override `trainer.limit_val_batches=8`. Commit `2218b54`.
+- **ppl_eval sanity (job 7390025, gpu-short V100, block_size 16, sdpa, 8 val batches):** COMPLETED 2:05.
+  - **`val/ppl = 22.23`** · val/nll 3.1015 · val/bpd 4.4746.
+  - **Paper target (BD3-LM L'=16, OWT): ≤ 22.27 → MATCH** (within ~0.2%, even on 8 batches). End-to-end pipeline validated: HF ckpt load, OWT tokenize+cache (`openwebtext-valid_validation_bs1024_wrapped_specialFalse.dat`), block-diffusion **sdpa** masking, PPL compute — all correct.
+  - GPU throughput observed ~0.8 it/s (eval_batch_size 16, len 1024) on V100 — informs Phase 2/3 timing.
+- **Full-valid run (job 7390111, BS=16, no limit):** submitted for the precise publishable number (.dat cached → no re-tokenize).
+- Harmless: "Token indices sequence length is longer than 1024" = GPT-2 tokenizer notice before bd3lm `wrap` packs into 1024-blocks. Not an error.
+
 ## 2026-06-02 (cont.) — Phase 1 wired up (smoke-test plan, grounded in repo)
 
 Read the bd3lms source to design Phase 1 correctly (not guess):
