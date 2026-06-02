@@ -1,0 +1,30 @@
+# Data, checkpoints, envs, logs — never commit (live on /scratch on Explorer)
+envs/
+data/
+ckpts/
+checkpoints/
+*.ckpt
+*.pt
+*.safetensors
+sample_logs/
+wandb/
+outputs/
+watch_folder/
+
+# Run logs (keep curated summaries in LOG.md instead)
+logs/
+*.log
+slurm-*.out
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+
+# OS
+.DS_Store
+
+# Results: keep small CSV/JSON metrics, ignore large dumps
+results/**/*.npy
+results/**/*.npz
