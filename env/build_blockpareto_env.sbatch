@@ -51,6 +51,14 @@ module load anaconda3/2024.06
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda --version
 
+# Isolate this project's conda PACKAGE cache. The shared cache had a CORRUPTED
+# wheel-0.45.1 package (CondaVerificationError) that failed env creation on the
+# first attempt (job 7380571). A fresh project-local pkgs dir forces conda to
+# re-download clean packages and never touches the corrupted shared cache.
+export CONDA_PKGS_DIRS="$PROJECT/conda-pkgs"
+mkdir -p "$CONDA_PKGS_DIRS"
+echo "CONDA_PKGS_DIRS=$CONDA_PKGS_DIRS"
+
 # --- 2. Clean any partial/failed env -----------------------------------------
 echo "### [2] clean prior attempts"
 conda env remove -n blockpareto -y 2>/dev/null || true   # home-default failed attempt
