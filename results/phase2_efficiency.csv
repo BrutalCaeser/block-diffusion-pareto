@@ -1,10 +1,19 @@
-block_size,seqlen,batch,algo_T,backbone,attn_backend,kv_cache,first_hitting,precision,wall_s,tok_per_s,nfe,sec_per_nfe,peak_mem_gb,gpu
-4,1024,1,5000,dit,sdpa,True,True,bf16,24.1067,42.48,1023,0.02356,1.1726,Tesla V100-SXM2-32GB
-8,1024,1,5000,dit,sdpa,True,True,bf16,21.8229,46.92,1023,0.02133,1.1737,Tesla V100-SXM2-32GB
-16,1024,1,5000,dit,sdpa,True,True,bf16,20.8235,49.18,1023,0.02036,1.1758,Tesla V100-SXM2-32GB
-32,1024,1,5000,dit,sdpa,True,True,bf16,21.533,47.55,1023,0.02105,1.1809,Tesla V100-SXM2-32GB
-64,1024,1,5000,dit,sdpa,True,True,bf16,21.8437,46.88,1023,0.02135,1.1969,Tesla V100-SXM2-32GB
-128,1024,1,5000,dit,sdpa,True,True,bf16,22.9645,44.59,1023,0.02245,1.2238,Tesla V100-SXM2-32GB
-256,1024,1,5000,dit,sdpa,True,True,bf16,26.2682,38.98,1023,0.02568,1.3454,Tesla V100-SXM2-32GB
-512,1024,1,5000,dit,sdpa,True,True,bf16,35.3798,28.94,1023,0.03458,1.6552,Tesla V100-SXM2-32GB
-1024,1024,1,5000,dit,sdpa,True,True,bf16,55.4731,18.46,1023,0.05423,2.2694,Tesla V100-SXM2-32GB
+block_size,seqlen,batch,algo_T,backbone,bench_backend,attn_backend,kv_cache,first_hitting,precision,wall_s,tok_per_s,nfe,sec_per_nfe,peak_mem_gb,gpu,series
+4,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,19.1164,53.57,1023,0.01869,0.7719,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+8,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,17.0492,60.06,1023,0.01667,0.7731,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+16,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,16.5911,61.72,1023,0.01622,0.7767,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+32,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,16.3778,62.52,1023,0.01601,0.7855,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+64,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,16.886,60.64,1023,0.01651,0.8241,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+128,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,17.7217,57.78,1023,0.01732,0.9042,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+256,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,19.5951,52.26,1023,0.01915,1.0557,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+512,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,25.0807,40.83,1023,0.02452,1.3645,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+1024,1024,1,5000,dit,hf_random,sdpa,True,True,bf16,42.7015,23.98,1023,0.04174,1.982,Tesla V100-SXM2-32GB,production (HF modeling_bd3lm)
+4,1024,1,5000,dit,,sdpa,True,True,bf16,24.1067,42.48,1023,0.02356,1.1726,Tesla V100-SXM2-32GB,reference (native DIT)
+8,1024,1,5000,dit,,sdpa,True,True,bf16,21.8229,46.92,1023,0.02133,1.1737,Tesla V100-SXM2-32GB,reference (native DIT)
+16,1024,1,5000,dit,,sdpa,True,True,bf16,20.8235,49.18,1023,0.02036,1.1758,Tesla V100-SXM2-32GB,reference (native DIT)
+32,1024,1,5000,dit,,sdpa,True,True,bf16,21.533,47.55,1023,0.02105,1.1809,Tesla V100-SXM2-32GB,reference (native DIT)
+64,1024,1,5000,dit,,sdpa,True,True,bf16,21.8437,46.88,1023,0.02135,1.1969,Tesla V100-SXM2-32GB,reference (native DIT)
+128,1024,1,5000,dit,,sdpa,True,True,bf16,22.9645,44.59,1023,0.02245,1.2238,Tesla V100-SXM2-32GB,reference (native DIT)
+256,1024,1,5000,dit,,sdpa,True,True,bf16,26.2682,38.98,1023,0.02568,1.3454,Tesla V100-SXM2-32GB,reference (native DIT)
+512,1024,1,5000,dit,,sdpa,True,True,bf16,35.3798,28.94,1023,0.03458,1.6552,Tesla V100-SXM2-32GB,reference (native DIT)
+1024,1024,1,5000,dit,,sdpa,True,True,bf16,55.4731,18.46,1023,0.05423,2.2694,Tesla V100-SXM2-32GB,reference (native DIT)
