@@ -50,6 +50,22 @@ def main(cfg):
     tokenizer = dataloader.get_tokenizer(cfg)
     model = diffusion.Diffusion(cfg, tokenizer=tokenizer).to('cuda').eval()
 
+    # --- adapt the NATIVE `dit` backbone to the sampling path -----------------
+    # diffusion.py's sampler was maintained for the hf_dit backbone. Two gaps for
+    # the native dit backbone, both fixed here WITHOUT touching pinned upstream:
+    #  (1) reset_kv_cache(): native takes no args, but the sampler calls it with
+    #      eval_batch_size=...  (native reads config.loader.eval_batch_size, which
+    #      EQUALS the passed value -> safe to accept-and-ignore the kwarg).
+    #  (2) gen_mask(): Diffusion.__init__ only calls it for hf_dit. The native
+    #      forward needs self.block_diff_mask to exist for the kv-cache sampling
+    #      branch (`cross_attn = hasattr(self, 'block_diff_mask')`). Build it.
+    if cfg.algo.backbone == 'dit':
+        _orig_reset = model.backbone.reset_kv_cache
+        model.backbone.reset_kv_cache = lambda *a, **k: _orig_reset()
+        if not hasattr(model.backbone, 'block_diff_mask'):
+            model.backbone.gen_mask(cfg.model.length, model.block_size,
+                                    attn_backend='sdpa')
+
     seqlen = cfg.model.length
     bsz = cfg.loader.eval_batch_size
     T = cfg.algo.T
