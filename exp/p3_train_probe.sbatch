@@ -64,7 +64,6 @@ python -u main.py \
   trainer.val_check_interval=$STEPS \
   trainer.limit_val_batches=2 \
   trainer.log_every_n_steps=1 \
-  +trainer.enable_checkpointing=false \
   hydra.run.dir=$PROJECT/train_runs/probe_bs${BS}_${SLURM_JOB_ID} \
   wandb=null
 set +x
