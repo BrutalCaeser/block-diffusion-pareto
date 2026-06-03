@@ -90,9 +90,11 @@ full-NFE point per block — our `first_hitting=false` sweep traces the whole ge
   `first_hitting=false`+`algo.T`, entropy guard healthy & complementary. CSV is headerless (repo util
   quirk) → parsed positionally.
 
-### Phase 1 — NFE sweep at fixed block (cheap)
-- Block 16, `first_hitting=false`, `T ∈ {1,2,3,4,6,8,12,16,24,32,48,64}` → gen-PPL / entropy / throughput vs NFE.
-- **Gate G1-N:** H1 verdict (monotone-then-saturating?); identify the knee NFE*.
+### Phase 1 — NFE sweep at fixed block (cheap) ✅ DONE
+- Block 16, `first_hitting=false`, `T∈{4,6,8,12,16,24,32,48,64}` (+ fh=true anchor), N=25 (job 7415004).
+- **Gate G1-N ✅:** H1 confirmed — gen-PPL monotone-decreasing in NFE; **soft knee NFE*≈550–650** (T≈12–16);
+  no hard plateau (31@1023 vs 44@809). Few-step sampling lossy on the base model (knee gen-PPL 81 = 2.6×
+  full-NFE). Entropy healthy 5.24–5.57 throughout. Curve: `results/nfe_quality_curve.png`.
 
 ### Phase 2 — 2-D sweep block × NFE (moderate)
 - Block ∈ {4,8,16} (released) × NFE grid; build gen-PPL & throughput surfaces.

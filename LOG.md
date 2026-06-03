@@ -4,6 +4,35 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-03 — ✅ NfePareto Phase 1: NFE→quality curve at block 16 (Gate G1-N)
+
+Job 7415004 (gpu/V100, 57:51, COMPLETED clean). block-16, fh=false, T∈{4,6,8,12,16,24,32,48,64}
++ fh=true anchor. N=25/point. `results/nfe_genppl.csv`, `results/nfe_quality_curve.png`, `nfe_vs_t.png`.
+
+| T | NFE | gen-PPL (corpus) | mean±std | entropy |
+|--:|--:|--:|--:|--:|
+| 4  | 247 | 442.3 | 452±103 | 5.24 |
+| 6  | 343 | 379.4 | 399±135 | 5.57 |
+| 8  | 425 | 225.9 | 240±78  | 5.49 |
+| 12 | 557 | 114.5 | 126±65  | 5.41 |
+| 16 | 643 | 80.8  | 85±27   | 5.44 |
+| 24 | 748 | 56.9  | 60±22   | 5.41 |
+| 32 | 809 | 44.1  | 46±14   | 5.36 |
+| 48 | 874 | 42.3  | 43±8    | 5.39 |
+| 64 | 910 | 36.6  | 38±11   | 5.32 |
+| fh=true | 1023 | 31.2 | 32±8 | 5.31 |
+
+- **Gate G1-N ✅ — H1 confirmed (nuanced):** gen-PPL **monotone-decreasing** in NFE; **soft knee NFE*≈550–650**
+  (T≈12–16). Steep below (442→81), gentle above (81→31). **No hard plateau** — quality keeps improving to
+  full NFE (31@1023 is 30% better than 44@809). On the *base* model, more steps = better all the way down,
+  with diminishing returns. Even at the knee, gen-PPL 81 is 2.6× the full-NFE 31 ⇒ **few-step sampling is
+  genuinely lossy on the undistilled model** (this is the gap consistency-distillation/CDLM exists to close).
+- **Entropy healthy 5.24–5.57 at every point** incl. the gen-PPL-442 garbage ⇒ incoherent-but-diverse, not
+  repetition-degenerate. gen-PPL and entropy catch different failures across the whole sweep (FlowLM lesson).
+- **Mechanistic note:** fh=false asymptotes at NFE≈910 (T=64, ~14 steps/block); fh=true reaches 1023
+  (1 tok/step = 16 steps/block) — the true max-NFE/quality endpoint.
+- **Next (Phase 2):** repeat for blocks {4,8} (released ckpts) → test H2 (does NFE* grow with block size?).
+
 ## 2026-06-03 — ▶ NfePareto Phase 0 START (gen-PPL ↔ NFE harness)
 
 New study (sister to BlockPareto, reuses this repo/env): quality (gen-PPL) vs denoising
