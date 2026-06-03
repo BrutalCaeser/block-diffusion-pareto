@@ -4,6 +4,28 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-03 — ▶ NfePareto Phase 0 START (gen-PPL ↔ NFE harness)
+
+New study (sister to BlockPareto, reuses this repo/env): quality (gen-PPL) vs denoising
+steps (NFE). Spec: `SPEC_NFE.md`. Wiki: `projects/NfePareto.md`.
+
+- **Source read (grounding rule #1):** `main.py` (`generate_samples`), `metrics.py`
+  (`record_generative_perplexity` = gpt2-large gen-PPL + **unigram-entropy diversity guard**),
+  `diffusion.py::_semi_ar_sampler`/`_ddpm_caching_update`, `configs/`. Pulled read-only to
+  `/Volumes/Crucial_X9/Projects/_refs/bd3lms-ro` (NOT vendored into repo).
+- **NFE dial verified in code:** `first_hitting=true` ⇒ ~1 tok/step ⇒ NFE≈seqlen, independent
+  of T (explains BlockPareto's flat 1023; it's the paper's quality mode w/ T=5000). 
+  `first_hitting=false` ⇒ fixed T-step schedule ⇒ **NFE≈(seqlen/block)·T, controllable via algo.T**.
+  NFE recorded as the sampler's actual `sampling_steps` (measured, not assumed).
+- **Design:** drive the repo's OWN `main.py mode=sample_eval` (validated metric — no re-scoring)
+  + parse CSV; throughput from weight-independent `bench_gen.py` at matched (block,T,fh=false).
+  `sample_eval` is unconditional ⇒ no dataset needed ⇒ Phase 0 cheap.
+- **Built:** `exp/nfe_genppl.sbatch` (drives sample_eval; knobs BLOCK/TS/FH/SEEDS/NSB/EBS/LEN;
+  defaults reproduce `scripts/gen_ppl/genppl_bd3lm.sh`), `analysis/parse_genppl.py` (CSV+log → table).
+- **Cluster ready:** env intact; gpt2-large + bd3lm-owt-block_size16 already cached in $HF_HOME.
+- **Next:** submit validation (block16, fh=true, T=5000 = paper anchor) + 2 fh=false NFE-dial
+  sanity points → Gate G0-N.
+
 ## 2026-06-03 — ✅ Phase 3 + 4: quality sweep + the Pareto (block 32 = frontier endpoint)
 
 - **Quality sweep:** trained BD3-LM from scratch on wikitext103, matched 2500-step budget, len 256, sdpa, blocks {4,16,32,64,128} (5 parallel `gpu`-partition jobs, ~47 min each on A100/H200). Probe lessons: sdpa OOMs at len 1024 (dense (2L)² mask) → len 256; `enable_checkpointing=false` clashes w/ default ModelCheckpoint → dropped.
