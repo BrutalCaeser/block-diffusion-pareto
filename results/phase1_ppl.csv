@@ -1,0 +1,3 @@
+block_size,checkpoint,split,n_val_batches,eval_batch_size,attn_backend,gpu,val_ppl,val_nll,val_bpd,paper_ppl_target,job_id,date
+16,kuleshov-group/bd3lm-owt-block_size16,owt-valid,8,16,sdpa,V100,22.2318,3.10152,4.47455,<=22.27,7390025,2026-06-02
+16,kuleshov-group/bd3lm-owt-block_size16,owt-valid,6891,16,sdpa,V100,22.2969,3.10445,4.47877,<=22.27,7392432,2026-06-02

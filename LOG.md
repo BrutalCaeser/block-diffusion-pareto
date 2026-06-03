@@ -4,6 +4,14 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-02 (cont.) — ✅✅ Phase 1 COMPLETE — Gate G1 PASSED (full PPL)
+
+- **Full-valid ppl_eval (job 7392432, `gpu` partition V100, block_size 16, sdpa, all 6891 batches, 1h59m):** COMPLETED.
+  - **`val/ppl = 22.297`** · val/nll 3.1044 · val/bpd 4.4788.
+  - **Paper (BD3-LM L'=16, OWT, len 1024): ≤ 22.27 → reproduced within ~0.1%.** Faithful end-to-end reproduction on our infra/pipeline. Result logged to `results/phase1_ppl.csv`.
+- **Gate G1 PASSED** → pipeline is trustworthy; proceed to Phase 2 (efficiency Pareto).
+- Throughput baseline: ~0.97 it/s @ eval_batch_size 16, len 1024 on V100 (sdpa) → ~15.9 seq/s · ~16.3k tok/s aggregate for scoring (NOT generation throughput; that's a Phase 2 measurement).
+
 ## 2026-06-02 (cont.) — ✅ Phase 1 smoke test PASSED (PPL reproduces paper)
 
 - **OWT prep (job 7389503, `sharing`):** COMPLETED in 7.5 min — 100k valid docs, 38 GB raw cache. (`short` was saturated → moved to idle `sharing`; 1h cap was ample.)
