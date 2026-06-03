@@ -100,3 +100,22 @@ Decision made **after G1 step-timing**:
 
 ## 10. Grounding rules (non-negotiable)
 1. No code written against an API I haven't read in the cloned repo. 2. Every reported number reproducible from a committed script + logged command. 3. Estimates tagged `[ESTIMATE]`; verified facts plain. 4. Negative/ null results reported honestly (MicroDLM precedent). 5. LOG.md updated every work session; commits small and message-clear.
+
+## 11. Outcomes — closeout (2026-06-03)
+Full results + figures in [FINDINGS.md](FINDINGS.md); run history in [LOG.md](LOG.md).
+
+- **Gate G0** ✓ env builds (torch 2.7.1+cu126, CUDA, imports OK).
+- **Gate G1** ✓ reproduced released block-16 OWT PPL **22.30 vs ≤22.27** (~0.1%).
+- **H1 (efficiency non-monotonic / knee)** → **CONFIRMED.** Production-path throughput
+  peaks at **block 32** (62.5 tok/s), falling off both sides. KV/peak memory rises
+  monotonically with block size; NFE flat (first_hitting). (Methodology note: measured
+  on a V100 at batch 1, seqlen 1024 — not the H200 originally specced; the qualitative
+  knee is the robust claim. A native reference DIT impl peaks at 16, the production HF
+  impl at 32 — we report the deployed path.)
+- **H2 (quality degrades monotonically with block size)** → **SUPPORTED** under a matched
+  cheap from-scratch budget: NLL worsens 4→32, plateaus 64/128. Caveat: fixed-budget,
+  not converged — ordering is the claim.
+- **H3 (32 is Pareto-optimal)** → **SUPPORTED.** Non-dominated set = {4,16,32}; **block 32
+  is the throughput-optimal frontier endpoint** (64/128 strictly dominated). 32 = fastest
+  point on the quality/speed frontier at small bounded quality cost ⇒ explains Inception's choice.
+- **Success criteria:** Minimum + Target met. Stretch (converged OWT quality, blog, outreach) = open.
