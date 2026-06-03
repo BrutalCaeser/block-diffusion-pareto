@@ -4,6 +4,14 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-03 — ✅ Phase 3 + 4: quality sweep + the Pareto (block 32 = frontier endpoint)
+
+- **Quality sweep:** trained BD3-LM from scratch on wikitext103, matched 2500-step budget, len 256, sdpa, blocks {4,16,32,64,128} (5 parallel `gpu`-partition jobs, ~47 min each on A100/H200). Probe lessons: sdpa OOMs at len 1024 (dense (2L)² mask) → len 256; `enable_checkpointing=false` clashes w/ default ModelCheckpoint → dropped.
+- **val NLL / PPL:** 4→5.965/389 · 16→6.035/418 · 32→6.157/472 · 64→6.214/500 · 128→6.198/492. Quality worsens monotonically 4→32, plateaus 64/128 (within noise). Smaller block ⇒ closer to AR ⇒ better likelihood.
+- **Pareto (quality vs throughput):** non-dominated = **{4,16,32}**; 64/128 strictly dominated by 32. **Block 32 = throughput-optimal frontier endpoint** — max speed at small quality cost vs 16; never dominated. `results/pareto_quality_speed.png`.
+- **Writeup:** `FINDINGS.md` (the Inception-facing artifact). Honest caveats logged: quality is fixed-budget-from-scratch (ordering, not converged absolutes); throughput is one operating point; production vs reference backbone differ.
+- **Phases 0–4 COMPLETE.** Next (optional): finetune-from-pretrain sweep to sharpen absolute quality; blog post; author/Inception outreach.
+
 ## 2026-06-02 (cont.) — ✅✅ Phase 2 CORRECTED & STRONGER — production peak at block 32
 
 **Why corrected:** the weight-independence check (native `dit` random vs `hf_dit` real ckpt @ bs16) did NOT match — 49.2 vs 61.7 tok/s. Root cause: those are DIFFERENT implementations (native DIT vs HF modeling_bd3lm), so the check conflated implementation + weights. Fix: benchmark the PRODUCTION HF path with random weights (`hf_random`, built via `AutoModelForMaskedLM.from_config` — works for any block size), and validate properly = same impl, random vs trained weights.
