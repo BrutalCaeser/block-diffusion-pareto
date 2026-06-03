@@ -48,18 +48,43 @@ def main(cfg):
     torch.manual_seed(0)
 
     tokenizer = dataloader.get_tokenizer(cfg)
-    model = diffusion.Diffusion(cfg, tokenizer=tokenizer).to('cuda').eval()
 
-    # --- adapt the NATIVE `dit` backbone to the sampling path -----------------
-    # diffusion.py's sampler was maintained for the hf_dit backbone. Two gaps for
-    # the native dit backbone, both fixed here WITHOUT touching pinned upstream:
-    #  (1) reset_kv_cache(): native takes no args, but the sampler calls it with
-    #      eval_batch_size=...  (native reads config.loader.eval_batch_size, which
-    #      EQUALS the passed value -> safe to accept-and-ignore the kwarg).
-    #  (2) gen_mask(): Diffusion.__init__ only calls it for hf_dit. The native
-    #      forward needs self.block_diff_mask to exist for the kv-cache sampling
-    #      branch (`cross_attn = hasattr(self, 'block_diff_mask')`). Build it.
-    if cfg.algo.backbone == 'dit':
+    # Backbone selection via BENCH_BACKEND env var:
+    #   dit            : native random-init DIT (reference implementation)
+    #   hf_pretrained  : HF modeling_bd3lm with REAL released weights (only bs 4/8/16)
+    #   hf_random      : HF modeling_bd3lm built from_config (random) — the PRODUCTION
+    #                    code path, available for ANY block size (incl. unreleased
+    #                    32/64/128). This is the faithful efficiency measurement.
+    # NOTE: native dit and HF modeling_bd3lm are DIFFERENT implementations with
+    # different speed/memory (verified: bs16 dit 49 tok/s vs hf 62). So the headline
+    # sweep uses hf_random; weight-independence is validated by hf_random vs
+    # hf_pretrained at bs16 (same impl, random vs trained weights).
+    bench_backend = os.environ.get('BENCH_BACKEND', str(cfg.algo.backbone))
+    ref_ckpt = os.environ.get('BENCH_REF_CKPT',
+                              'kuleshov-group/bd3lm-owt-block_size16')
+
+    model = diffusion.Diffusion(cfg, tokenizer=tokenizer)
+
+    if bench_backend == 'hf_random':
+        # cfg.algo.backbone was passed as 'dit' (so Diffusion didn't from_pretrained);
+        # replace that native backbone with a random-init HF modeling_bd3lm.
+        import transformers
+        hfcfg = transformers.AutoConfig.from_pretrained(ref_ckpt, trust_remote_code=True)
+        hfcfg.block_size = int(model.block_size)
+        hfcfg.model_length = int(cfg.model.length)
+        hfcfg.attn_backend = 'sdpa'   # inference (flex unsupported w/ kv-cache)
+        model.backbone = transformers.AutoModelForMaskedLM.from_config(
+            hfcfg, trust_remote_code=True)
+        # HF DITBackbone.__init__ already calls gen_mask + provides reset_kv_cache(eval_batch_size=)
+
+    model = model.to('cuda').eval()
+
+    if bench_backend == 'dit':
+        # adapt native dit to the sampler (gaps vs hf path), without touching upstream:
+        #  (1) reset_kv_cache(): native takes no args (reads config.loader.eval_batch_size,
+        #      == the value the sampler passes) -> accept-and-ignore the kwarg.
+        #  (2) gen_mask(): Diffusion.__init__ only calls it for hf_dit; native forward
+        #      needs self.block_diff_mask for the kv-cache sampling branch.
         _orig_reset = model.backbone.reset_kv_cache
         model.backbone.reset_kv_cache = lambda *a, **k: _orig_reset()
         if not hasattr(model.backbone, 'block_diff_mask'):
@@ -97,6 +122,7 @@ def main(cfg):
         'batch': int(bsz),
         'algo_T': int(T),
         'backbone': str(cfg.algo.backbone),
+        'bench_backend': bench_backend,
         'attn_backend': str(cfg.model.attn_backend),
         'kv_cache': bool(cfg.sampling.kv_cache),
         'first_hitting': bool(cfg.sampling.first_hitting),

@@ -33,6 +33,10 @@ BATCH=${BATCH:-1}
 T=${T:-5000}
 LEN=${LEN:-1024}
 BLOCKS=${BLOCKS:-"4 8 16 32 64 128"}
+# BENCH_BACKEND: hf_random (production HF path, random init, ANY block size) is the
+# headline; dit = native reference impl. algo.backbone stays 'dit' either way so
+# Diffusion() never from_pretrained()s; the harness swaps in the HF backbone itself.
+export BENCH_BACKEND=${BACKEND:-hf_random}
 
 # Write results OUTSIDE the git clone (avoids `git pull` conflicts); copied back
 # into the repo from the local machine and committed there.
