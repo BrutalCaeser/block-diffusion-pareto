@@ -35,9 +35,15 @@ REPO=$PROJECT/bd3lms
 export HF_HOME=$PROJECT/hf
 BS=${BS:-32}
 STEPS=${STEPS:-30}
-GBATCH=${GBATCH:-8}
+GBATCH=${GBATCH:-16}
+LEN=${LEN:-256}
+# bd3lm cross-attn doubles the seq (x ++ x0); the SDPA path materializes a DENSE
+# (2*LEN)^2 block mask per layer -> at LEN=1024 (2048^2) it OOMs a 32GB V100.
+# LEN=256 (512^2 mask) fits comfortably and still gives a valid block-size quality
+# TREND. expandable_segments reduces allocator fragmentation.
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-echo "node:$(hostname) date:$(date) block_size=$BS steps=$STEPS gbatch=$GBATCH"
+echo "node:$(hostname) date:$(date) block_size=$BS steps=$STEPS gbatch=$GBATCH len=$LEN"
 module load anaconda3/2024.06
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$ENV_PREFIX"
@@ -56,7 +62,7 @@ python -u main.py \
   algo.backbone=dit \
   data=wikitext103 \
   data.cache_dir=$PROJECT/data \
-  model.length=1024 \
+  model.length=$LEN \
   model.attn_backend=sdpa \
   block_size=$BS \
   training.from_pretrained=null \
