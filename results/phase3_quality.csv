@@ -1,0 +1,5 @@
+block_size,val_nll,val_ppl,dataset,seqlen,steps,batch,backbone,attn_backend,from_pretrained,gpu,job_id
+4,5.96467,389.46,wikitext103,256,2500,16,dit,sdpa,none,gpu-A100/H200,7412385
+16,6.03522,417.94,wikitext103,256,2500,16,dit,sdpa,none,gpu-A100/H200,7412386
+32,6.15673,471.91,wikitext103,256,2500,16,dit,sdpa,none,gpu-A100/H200,7412387
+64,6.21445,499.94,wikitext103,256,2500,16,dit,sdpa,none,gpu-A100/H200,7412388
