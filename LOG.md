@@ -4,7 +4,31 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
-## 2026-06-02 (cont.) — ✅ Phase 2 efficiency sweep DONE (throughput knee found)
+## 2026-06-02 (cont.) — ✅✅ Phase 2 CORRECTED & STRONGER — production peak at block 32
+
+**Why corrected:** the weight-independence check (native `dit` random vs `hf_dit` real ckpt @ bs16) did NOT match — 49.2 vs 61.7 tok/s. Root cause: those are DIFFERENT implementations (native DIT vs HF modeling_bd3lm), so the check conflated implementation + weights. Fix: benchmark the PRODUCTION HF path with random weights (`hf_random`, built via `AutoModelForMaskedLM.from_config` — works for any block size), and validate properly = same impl, random vs trained weights.
+
+**Weight-independence PROVEN (correct test):** `hf_random@16` = 61.72 tok/s vs `hf_pretrained@16` (real checkpoint) = 61.74 tok/s → **0.03% diff**. Random init is a faithful timing proxy ⇒ the unreleased 32/64/128 production points are trustworthy.
+
+**PRODUCTION (HF modeling_bd3lm) throughput — PEAK AT BLOCK 32:**
+
+| block | tok/s | peak mem GB |
+|------:|------:|-----:|
+| 4   | 53.57 | 0.77 |
+| 8   | 60.06 | 0.77 |
+| 16  | 61.72 | 0.78 |
+| **32**  | **62.52 ← PEAK (100%)** | 0.79 |
+| 64  | 60.64 | 0.82 |
+| 128 | 57.78 | 0.90 |
+| 256 | 52.26 | 1.06 |
+| 512 | 40.83 | 1.36 |
+| 1024| 23.98 | 1.98 |
+
+- **Headline:** on the production code path, throughput is **maximized at block_size 32** — exactly the value Ermon said Inception runs (native reference DIT, less optimized, peaks at 16; kept as labeled comparison in `results/phase2_efficiency_dit.jsonl`).
+- NFE flat 1023 (first_hitting); peak mem monotonic 0.77→1.98 GB. Plot: `results/phase2_throughput.png`; data: `results/phase2_efficiency.csv`.
+- **Caveat (honest):** measured on a V100 at batch 1, seqlen 1024. The exact knee can shift with GPU/batch/seqlen; throughput is one axis — quality (Phase 3) completes the Pareto. Lesson: always benchmark the production implementation, not just an architecturally-equivalent one.
+
+## 2026-06-02 (cont.) — Phase 2 first pass (native DIT reference; superseded as headline)
 
 Built a generation-efficiency harness (`bench/bench_gen.py`) + sweep job (`exp/p2_efficiency.sbatch`). Uses the **native random-init `dit` backbone** (weight-independent → works for unreleased 32/64/128). Adapted two native-backbone sampler gaps in the harness (reset_kv_cache signature, gen_mask) without touching pinned upstream. Canonical inference config: sdpa + KV-cache + first_hitting, algo.T=5000, bf16, seqlen 1024, batch 1, V100.
 
