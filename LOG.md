@@ -4,6 +4,29 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-02 (cont.) — ✅ Phase 2 efficiency sweep DONE (throughput knee found)
+
+Built a generation-efficiency harness (`bench/bench_gen.py`) + sweep job (`exp/p2_efficiency.sbatch`). Uses the **native random-init `dit` backbone** (weight-independent → works for unreleased 32/64/128). Adapted two native-backbone sampler gaps in the harness (reset_kv_cache signature, gen_mask) without touching pinned upstream. Canonical inference config: sdpa + KV-cache + first_hitting, algo.T=5000, bf16, seqlen 1024, batch 1, V100.
+
+**Result — throughput is NON-MONOTONIC with a clear knee (H1 CONFIRMED):**
+
+| block | tok/s | sec/NFE | peak mem GB |
+|------:|------:|--------:|-----:|
+| 4   | 42.48 | 0.0236 | 1.17 |
+| 8   | 46.92 | 0.0213 | 1.17 |
+| **16**  | **49.18 (peak)** | 0.0204 | 1.18 |
+| **32**  | 47.55 (97% of peak) | 0.0211 | 1.18 |
+| 64  | 46.88 | 0.0214 | 1.20 |
+| 128 | 44.59 | 0.0225 | 1.22 |
+| 256 | 38.98 | 0.0257 | 1.35 |
+| 512 | 28.94 | 0.0346 | 1.66 |
+| 1024| 18.46 | 0.0542 | 2.27 |
+
+- **Throughput peaks at block 16, falls off both sides:** small blocks pay per-stride/loop + KV-store overhead (256 strides @ block 4); large blocks pay expensive per-step attention (bigger query). **NFE flat at 1023** for all (first_hitting ⇒ ~1 token/step ⇒ NFE≈seqlen), so the curve is pure per-step cost — clean.
+- **Peak memory rises monotonically** (1.17→2.27 GB) with block size (larger activation working set).
+- **Block 32 = ~97% of peak throughput** at near-min memory → consistent with the "32 is the production sweet spot" thesis (quality upside measured in Phase 3). Headline plot: `results/phase2_throughput.png`; data: `results/phase2_efficiency.csv`.
+- **Weight-independence validation** (real hf_dit ckpt vs random dit @ block 16) running (job 7401784) to empirically confirm timing is backbone/weight agnostic.
+
 ## 2026-06-02 (cont.) — ✅✅ Phase 1 COMPLETE — Gate G1 PASSED (full PPL)
 
 - **Full-valid ppl_eval (job 7392432, `gpu` partition V100, block_size 16, sdpa, all 6891 batches, 1h59m):** COMPLETED.
