@@ -39,3 +39,7 @@ __pycache__/
 # Results: keep small CSV/JSON metrics, ignore large dumps
 results/**/*.npy
 results/**/*.npz
+# Raw per-run gen-PPL dumps carry full generated-text samples (bulky, regenerable);
+# keep them on /scratch + local like sample_logs/. Commit only the aggregate
+# results/nfe_genppl.csv (written by analysis/parse_genppl.py).
+results/nfe/

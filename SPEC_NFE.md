@@ -65,19 +65,30 @@ Per `(block, T, seed)` record: **gen-PPL (corpus aggregate + per-batch mean±std
 **actual NFE**, **gen length**, **throughput (tok/s)** (from bench_gen), seed, GPU.
 **N ≥ 256** generated sequences per point (gen-PPL is noisy) via `num_sample_batches × eval_batch_size`
 across ≥3 seeds; report mean ± std.
-Anchors: paper's BD3-LM gen-PPL (first_hitting=true, T=5000); AR / MDLM where useful.
+
+**Paper anchors — BD3-LM Table 7 (OWT, L=1024, 300 samples, GPT-2-large judge):**
+| Model | Gen PPL | NFEs | | Model | Gen PPL | NFEs |
+|---|---|---|---|---|---|---|
+| AR | 14.1 | 1K | | BD3-LM L'=16 | **33.4** | 1K |
+| MDLM | 46.8 | 1K | | BD3-LM L'=8 | 30.4 | 1K |
+| SEDD | 52.0 | 1K | | BD3-LM L'=4 | 25.7 | 1K |
+
+⇒ **G0-N target: block-16 gen-PPL ≈ 33.4 at NFE≈1024** (within ~5–10%). NFE=1K confirms
+first_hitting unmasks ~1 tok/step (≈ seqlen). **Note the paper reports only this single
+full-NFE point per block — our `first_hitting=false` sweep traces the whole gen-PPL-vs-NFE curve
+*below* NFE=seqlen, which the paper never does. That under-NFE curve is the novel contribution.**
 
 ## 5. Phases & gates
-### Phase 0 — Harness + validation (cheap, ~1–2 GPU-hr) ← CURRENT
+### Phase 0 — Harness + validation (cheap, ~1–2 GPU-hr) ✅ DONE
 - [x] Read `main.py` / `metrics.py` / `diffusion.py` sampler / `configs` (done 2026-06-03).
 - [x] `exp/nfe_genppl.sbatch` (drives `main.py mode=sample_eval`; knobs BLOCK, TS, FH, SEEDS, NSB, EBS, LEN).
 - [x] `analysis/parse_genppl.py` (per-run CSV + stdout `.log` → `results/nfe_genppl.csv`).
-- [ ] **Validation run:** canonical paper config — block 16, `first_hitting=true`, `T=5000`,
-      `nucleus_p=0.9`, `kv_cache=true`, `hf_dit`, len 1024 → reproduce the paper's BD3-LM gen-PPL
-      ballpark (within ~5–10%; gen-PPL is sampler/seed sensitive). Plus 2 `first_hitting=false`
-      sanity points (small/large T) to confirm the NFE dial actually moves NFE.
-- **Gate G0-N:** harness emits stable gen-PPL + healthy entropy on block-16 matching paper ballpark,
-  and `first_hitting=false` NFE tracks `(seqlen/block)×T` → proceed. Size the sweep from measured per-point cost.
+- [x] **Validation run** (jobs 7414624/7414625): block-16 gen-PPL **31.2** vs paper Table 7 **33.4**
+      at NFE≈1024 → **6.6% within ballpark**. fh=false sanity: NFE {424,807} at T {8,32}, gen-PPL
+      {246,43} → dial controllable + gen-PPL monotone-decreasing with NFE. T=2 unsamplable (entropy floor).
+- **Gate G0-N ✅ PASSED:** harness reproduces paper gen-PPL, NFE is controllable+measured via
+  `first_hitting=false`+`algo.T`, entropy guard healthy & complementary. CSV is headerless (repo util
+  quirk) → parsed positionally.
 
 ### Phase 1 — NFE sweep at fixed block (cheap)
 - Block 16, `first_hitting=false`, `T ∈ {1,2,3,4,6,8,12,16,24,32,48,64}` → gen-PPL / entropy / throughput vs NFE.

@@ -83,8 +83,23 @@ def main():
             print(f'skip (bad tag): {base}')
             continue
         meta = m.groupdict()
+        # NOTE: the repo's utils.update_and_save_csv opens the file in append mode
+        # (which creates it) BEFORE its fsspec_exists() header check, so a fresh CSV
+        # gets NO header row. Parse POSITIONALLY by the save_dict column order; use
+        # csv.reader (not DictReader) so the quoted, multi-line `samples` field is
+        # handled correctly. Tolerate an accidental header (col0 not a float -> skip).
+        cols = ['gen_ppl', 'gen_nfes', 'gen_entropy', 'gen_lengths', 'samples', 'seed']
         with open(csv_path, newline='', errors='ignore') as f:
-            rows = list(csv.DictReader(f))
+            raw = list(csv.reader(f))
+        rows = []
+        for rec in raw:
+            if not rec:
+                continue
+            try:
+                float(rec[0])
+            except (ValueError, IndexError):
+                continue  # header or malformed line
+            rows.append({cols[i]: rec[i] for i in range(min(len(rec), len(cols)))})
         if not rows:
             print(f'skip (empty): {base}')
             continue

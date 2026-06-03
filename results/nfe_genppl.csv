@@ -1,0 +1,4 @@
+block,T,first_hitting,seed,length,n_batches,genppl_agg,genppl_mean,genppl_std,entropy_agg,entropy_mean,nfe_mean,nfe_min,nfe_max,genlen_mean
+16,8,false,1,1024,10,246.0132,256.1251,70.4274,5.5286,5.5286,424.5,412,432,1012.3
+16,32,false,1,1024,10,43.1726,46.2191,17.7456,5.3901,5.3901,807.1,794,816,1020.8
+16,5000,true,1,1024,25,31.1763,32.0283,8.107,5.3116,5.3116,1023.0,1023,1023,1021.92

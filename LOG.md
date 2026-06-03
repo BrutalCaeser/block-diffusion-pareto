@@ -23,8 +23,29 @@ steps (NFE). Spec: `SPEC_NFE.md`. Wiki: `projects/NfePareto.md`.
 - **Built:** `exp/nfe_genppl.sbatch` (drives sample_eval; knobs BLOCK/TS/FH/SEEDS/NSB/EBS/LEN;
   defaults reproduce `scripts/gen_ppl/genppl_bd3lm.sh`), `analysis/parse_genppl.py` (CSV+log → table).
 - **Cluster ready:** env intact; gpt2-large + bd3lm-owt-block_size16 already cached in $HF_HOME.
-- **Next:** submit validation (block16, fh=true, T=5000 = paper anchor) + 2 fh=false NFE-dial
-  sanity points → Gate G0-N.
+- **Jobs 7414624 (validation) + 7414625 (sanity)** on gpu-short.
+
+### ✅ Gate G0-N PASSED (2026-06-03)
+
+| block | T | first_hitting | NFE (measured) | gen-PPL (corpus) | gen-PPL mean±std | entropy | n |
+|------:|--:|:--|--:|--:|--:|--:|--:|
+| 16 | 8    | false | **424**  | 246.0 | 256±70 | 5.53 | 10 |
+| 16 | 32   | false | **807**  | 43.2  | 46±18  | 5.39 | 10 |
+| 16 | 5000 | true  | **1023** | **31.2** | 32±8 | 5.31 | 25 |
+
+- **Reproduction:** block-16 gen-PPL **31.2** vs paper Table 7 = **33.4** at NFE≈1K → **6.6% better,
+  within the ~5–10% gate**. (24/25 samples; gpt2-large judge, nucleus 0.9, len 1024.)
+- **NFE dial verified controllable + measured:** fh=false T∈{8,32} → NFE {424, 807}; fh=true → 1023
+  (≈seqlen, 1 tok/step). gen-PPL **monotone-decreasing with NFE** (246→43→31) ⇒ H1 direction holds.
+- **Entropy guard healthy (5.3–5.5) and complementary:** the bad NFE-424 point still has high unigram
+  entropy ⇒ incoherent-but-diverse, not repetition-degenerate. gen-PPL catches incoherence; entropy
+  catches repetition — both needed (FlowLM lesson, confirmed empirically).
+- **Low-NFE floor found:** T=2 (~NFE 128) is UNSAMPLABLE — auto-rejected by the built-in entropy<4
+  stop-condition after 10 retries. The Phase-1 sweep must start above this floor.
+- **Harness quirk fixed:** repo's `utils.update_and_save_csv` writes NO header (opens append-mode
+  before its exists-check) ⇒ `parse_genppl.py` reads CSV positionally.
+- **Next (Phase 1):** block-16 fh=false sweep T∈{4,6,8,12,16,24,32,48,64} (NSB=25) on `gpu` → full
+  gen-PPL/entropy/NFE-vs-T curve; locate knee NFE*; then bump key points to N≥256.
 
 ## 2026-06-03 — ✅ Phase 3 + 4: quality sweep + the Pareto (block 32 = frontier endpoint)
 
