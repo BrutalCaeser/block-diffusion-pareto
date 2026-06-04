@@ -4,6 +4,23 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-03 — ✅ NfePareto Phase 3+4: unified Pareto + writeup (NfePareto COMPLETE)
+
+Throughput at matched (block,NFE) points via `bench_gen.py` (real released weights, hf_dit) — jobs
+7418923 + 7419597. Fused with the gen-PPL curves → `results/pareto_genppl_throughput.png`, `nfe_pareto.csv`.
+
+- **bench_gen fix:** it called `_semi_ar_sampler` single-shot; at very low NFE the entropy<4 stop returns
+  (None,None) → crash. Mirrored `_sample`'s resample loop (retry-to-success, time only the success). Recovered
+  most points; **5 very-low-NFE points (b4 T3/4, b8 T3/4, b16 T4) still untimeable at batch-1/bf16** (>15
+  consecutive rejects) — all dominated garbage-quality points, omitted with a caveat.
+- **Unified Pareto (16 pts, 11 non-dominated):** frontier is a clean **turbo → quality** arc —
+  turbo corner b8 NFE128 ~277 tok/s @ gen-PPL 803; **block 16 owns the middle** (NFE425 ~144 tok/s @226;
+  NFE643 ~98 @81; NFE809 ~75 @44); **quality corner b4 full-NFE ~42 tok/s @ 24.2**. = the latency-tiered
+  product surface. Throughput is single-stream/batch-1/gpu-short-class (node timing noise; shape is the claim).
+- **Phase 4:** `FINDINGS_NFE.md` (full writeup), README sister-result section + figure, layout/status updated.
+- **NfePareto COMPLETE (Phases 0–4; Gates G0-N/G1-N/G2-N passed).** Next: consistency-distillation extension
+  (close the few-step gap this study quantifies — the CDLM/Mercury recipe), tracked as menu idea #4.
+
 ## 2026-06-03 — ✅ NfePareto Phase 2: block×NFE — H2 FLIPPED (curves cross) (Gate G2-N)
 
 Jobs 7417509 (b4), 7417510 (b8) fh=false sweeps + 7417511/12 fh=true anchors. All COMPLETED.

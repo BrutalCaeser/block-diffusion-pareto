@@ -43,11 +43,28 @@ not converged absolute PPL. See caveats in [FINDINGS.md](FINDINGS.md).)_
 
 ---
 
+## Sister study — NfePareto: the *denoising-step (NFE)* axis
+
+BlockPareto maps the **block-size** knob; **[FINDINGS_NFE.md](FINDINGS_NFE.md)** maps the **NFE knob**
+(how many denoising steps you spend — the literal "fast vs quality" dial) on the released checkpoints,
+then fuses both into one operating map. Plan: **[SPEC_NFE.md](SPEC_NFE.md)**.
+
+![Unified gen-PPL vs throughput Pareto](results/pareto_genppl_throughput.png)
+
+- **Validated:** released-checkpoint gen-PPL reproduces the BD3-LM paper Table 7 within ~6% (block 4/8/16 = 24.2/31.0/31.2 vs 25.7/30.4/33.4).
+- **The NFE dial** (block 16): gen-PPL is monotone-decreasing in NFE with a **soft knee NFE\*≈550–650**; no hard plateau. **Few-step sampling is genuinely lossy on the base model** (knee gen-PPL 81 = 2.6× the full-NFE 31) — the exact gap consistency-distillation (CDLM / Mercury's "1–3 step" claim) exists to close. `results/nfe_quality_curve.png`.
+- **Block × NFE interact — the curves cross:** at matched mid-NFE the *larger* block (16) wins (115 vs 327 @ NFE~557); at full NFE the *smaller* block (4) wins (24.2). **The optimal block depends on the NFE budget.**
+- **Unified Pareto:** the frontier is a clean **turbo → quality** arc (block 16 owns the middle; block 4 + full NFE = the quality endpoint) — the latency-tiered surface a commercial dLLM exposes.
+
+---
+
 ## Repository layout
 ```
 README.md       this file — front door + results
-FINDINGS.md     the writeup: question, setup, results, Pareto, honest caveats
-SPEC.md         blueprint: phases, hypotheses, methodology, compute budget, decision gates
+FINDINGS.md     BlockPareto writeup: question, setup, results, Pareto, honest caveats
+SPEC.md         BlockPareto blueprint: phases, hypotheses, methodology, gates
+FINDINGS_NFE.md NfePareto writeup: the NFE↔quality dial + unified Pareto (sister study)
+SPEC_NFE.md     NfePareto blueprint (NFE axis)
 LOG.md          running engineering/devops log (newest on top)
 CONTRIBUTING.md commit-message convention
 UPSTREAM.md     pinned bd3lms commit SHA (upstream is NOT vendored)
@@ -59,9 +76,14 @@ exp/            SLURM batch jobs:
                   p2_efficiency.sbatch     throughput/memory/NFE sweep (Phase 2)
                   p3_train_probe.sbatch    training step-timing probe
                   p3_quality_sweep.sbatch  quality sweep, one block size/job (Phase 3)
-bench/          bench_gen.py       generation-efficiency harness
+                  nfe_genppl.sbatch        [NFE] drive sample_eval: gen-PPL vs NFE
+                  nfe_throughput.sbatch    [NFE] throughput at matched (block,NFE) points
+bench/          bench_gen.py       generation-efficiency harness (retries low-NFE stop)
 analysis/       analyze_phase2.py  efficiency CSV + plots
                 analyze_pareto.py  combined quality↔throughput Pareto
+                parse_genppl.py    [NFE] aggregate sample_eval CSVs → table
+                analyze_nfe.py     [NFE] gen-PPL/entropy vs NFE curves
+                analyze_pareto_nfe.py [NFE] unified gen-PPL vs throughput Pareto
 results/        committed metrics (CSV/JSON) + figures (PNG)
 ```
 
@@ -89,7 +111,9 @@ for BS in 4 16 32 64 128; do sbatch --export=ALL,BS=$BS exp/p3_quality_sweep.sba
 python analysis/analyze_phase2.py && python analysis/analyze_pareto.py             # 6. figures
 ```
 
-## Status: complete (Phases 0–4)
-Env ✓ · PPL reproduction ✓ · efficiency sweep ✓ · quality sweep ✓ · Pareto + writeup ✓.
-See [LOG.md](LOG.md) for the full run-by-run history. Possible extensions: finetune-from-pretrain
-quality sweep (converged absolutes), batch/seqlen throughput sweeps, blog post.
+## Status: complete (both studies)
+**BlockPareto** (block-size axis): env ✓ · PPL reproduction ✓ · efficiency sweep ✓ · quality sweep ✓ · Pareto + writeup ✓.
+**NfePareto** (NFE axis, [FINDINGS_NFE.md](FINDINGS_NFE.md)): harness validated (G0-N) ✓ · NFE dial (G1-N) ✓ · block×NFE crossover (G2-N) ✓ · unified Pareto + writeup ✓.
+See [LOG.md](LOG.md) for the full run-by-run history. Next: the consistency-distillation extension —
+close the few-step quality gap NfePareto quantifies (the CDLM / Mercury recipe). Other extensions:
+finetune-from-pretrain converged quality, batch/seqlen throughput sweeps, blog post.
