@@ -96,9 +96,11 @@ full-NFE point per block — our `first_hitting=false` sweep traces the whole ge
   no hard plateau (31@1023 vs 44@809). Few-step sampling lossy on the base model (knee gen-PPL 81 = 2.6×
   full-NFE). Entropy healthy 5.24–5.57 throughout. Curve: `results/nfe_quality_curve.png`.
 
-### Phase 2 — 2-D sweep block × NFE (moderate)
-- Block ∈ {4,8,16} (released) × NFE grid; build gen-PPL & throughput surfaces.
-- **Gate G2-N:** H2 verdict (does NFE* grow with block size?).
+### Phase 2 — 2-D sweep block × NFE (moderate) ✅ DONE
+- Blocks {4,8,16} (released) × NFE; jobs 7417509–7417512. Anchors reproduce paper (24.2/31.0/31.2 vs 25.7/30.4/33.4).
+- **Gate G2-N ✅ — H2 FLIPPED.** Curves CROSS: at matched mid-NFE, larger block (16) is best (115 vs 327/357 @ NFE~557);
+  at full NFE, smaller block (4) is best (24.2). So **smaller blocks need MORE total NFE to converge** (opposite of H2),
+  and **the optimal block depends on the NFE budget** (turbo→big block, quality→small block). T=2 = degeneracy floor for all blocks.
 
 ### Phase 3 — Unified Pareto
 - Merge with BlockPareto throughput; plot gen-PPL vs throughput over all (block, NFE); mark frontier;

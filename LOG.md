@@ -4,6 +4,31 @@ Newest entries at top. This is the running devops/lab log: what was run, where, 
 
 ---
 
+## 2026-06-03 — ✅ NfePareto Phase 2: block×NFE — H2 FLIPPED (curves cross) (Gate G2-N)
+
+Jobs 7417509 (b4), 7417510 (b8) fh=false sweeps + 7417511/12 fh=true anchors. All COMPLETED.
+Blocks {4,8,16} × NFE. `results/nfe_quality_curve.png` (now 3 series + paper lines).
+
+**Anchors reproduce paper (fh=true, NFE 1023):** b4 24.2 (paper 25.7), b8 31.0 (30.4), b16 31.2 (33.4) — all within ~6%.
+
+**gen-PPL at matched NFE (the headline — curves CROSS):**
+| NFE | block4 | block8 | block16 |
+|--:|--:|--:|--:|
+| ~130–260 | 808 | 803 | 442 |
+| ~557 | 327 | 357 | **115** |
+| ~650 | 320 | 190 | **81** |
+| 1023 | **24.2** | 31.0 | 31.2 |
+
+- **Gate G2-N — H2 REJECTED & FLIPPED.** Original H2 (NFE* grows with block size) is wrong: **smaller blocks
+  need MORE total NFE to converge** (b4 still 225 @ NFE 770; b16 57 @ 748). At *equal steps-per-token* the
+  larger block wins (more tokens denoised jointly/step; shorter AR chain → less cross-block error compounding).
+- **Richer confirmed finding: block size × NFE interact — optimal block depends on the NFE budget.**
+  Low NFE (turbo) → bigger block (16) degrades gracefully; full NFE (quality) → smaller block (4) best.
+  The two orderings cross ⇒ a concrete turbo/quality operating recipe (the 2-D map this project targets).
+- T=2 fails for ALL blocks (entropy<4 auto-reject) = consistent low-step degeneracy floor. Entropy 4.9–5.6 healthy.
+- **Next (Phase 3):** weight-independent throughput (`bench_gen`, hf_random, fh=false) at matched (block,NFE)
+  points → fuse into the unified gen-PPL-vs-throughput Pareto + the enterprise "turbo/quality" reading.
+
 ## 2026-06-03 — ✅ NfePareto Phase 1: NFE→quality curve at block 16 (Gate G1-N)
 
 Job 7415004 (gpu/V100, 57:51, COMPLETED clean). block-16, fh=false, T∈{4,6,8,12,16,24,32,48,64}
