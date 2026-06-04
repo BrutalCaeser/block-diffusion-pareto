@@ -98,21 +98,34 @@ def main(cfg):
     assert seqlen % block == 0, f'seqlen {seqlen} not divisible by block {block}'
     num_strides = seqlen // block
 
-    def run_once():
+    def run_attempt():
         torch.cuda.synchronize()
+        t0 = time.time()
         with torch.no_grad(), torch.autocast('cuda', dtype=torch.bfloat16):
             x, nfe = model._semi_ar_sampler(
                 n_samples=bsz, num_steps=T, num_strides=num_strides, seqlen=seqlen)
         torch.cuda.synchronize()
-        return x, nfe
+        return x, nfe, time.time() - t0
+
+    def run_until_success(max_tries=15):
+        # _semi_ar_sampler returns (None, None) when a sample trips the entropy<4
+        # stop-condition (degenerate, common at very low NFE). diffusion._sample
+        # retries the same way; we mirror it so low-NFE operating points still yield
+        # a clean TIMED generation. Only the successful attempt's wall-time is kept
+        # (failed attempts discarded) -> tok/s = time for one good sample, consistent
+        # with the gen-PPL runs (which also discard rejected samples).
+        for _ in range(max_tries):
+            x, nfe, dt = run_attempt()
+            if x is not None:
+                return x, nfe, dt
+        raise RuntimeError(f'sampler returned None after {max_tries} tries '
+                           f'(operating point too few-NFE to sample: block={block} T={T})')
 
     # warmup (compile kernels / allocator) — not timed
-    _ = run_once()
+    _ = run_until_success()
 
     torch.cuda.reset_peak_memory_stats()
-    t0 = time.time()
-    x, nfe = run_once()
-    dt = time.time() - t0
+    x, nfe, dt = run_until_success()
 
     peak_gb = torch.cuda.max_memory_allocated() / 1e9
     gen_tokens = seqlen * bsz
